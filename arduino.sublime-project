@@ -12,80 +12,16 @@
 	{
 		"trim_trailing_white_space_on_save": true,
 
+
 		"sublimeclang_dont_prepend_clang_includes": true,
+		"sublimeclang_options_script": "python ${project_path:opts.py}",
 		"sublimeclang_options":
 		[
-			// "-I/Users/pavel/code/arduino-1.0.2/hardware/arduino/cores/arduino",
-			// "-I/Users/pavel/code/arduino-1.0.2/hardware/arduino/variants/standard/",
-			"-I/Users/pavel/contiki_share/avr/",
-			"-I/Users/pavel/contiki_share/avr/gcc_avr_4.5.2_include",
-			"-I/Users/pavel/contiki_share/avr/gcc_avr_4.5.3_include",
-
-			"-I/Applications/Arduino.app/Contents/Resources/Java/hardware/arduino/cores/arduino",
-			"-I/Applications/Arduino.app/Contents/Resources/Java/hardware/arduino/variants/standard",
-			"-I/Applications/Arduino.app/Contents/Resources/Java/hardware/arduino/cores/arduino",
-			"-I/Applications/Arduino.app/Contents/Resources/Java/libraries/*",
-
-			"-includeArduino.h",
-			// "-includeHardwareSerial.h",
-
-			// "-I${folder:${project_path:contiki.sublime-project}}/avr",
-			// "-I${folder:${project_path:contiki.sublime-project}}/avr/gcc_avr_4.5.2_include",
-			// "-I${folder:${project_path:contiki.sublime-project}}/avr/gcc_avr_4.5.3_include",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/platform/arduino",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/cpu/avr",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/platform/arduino/.",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/platform/arduino/apps",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/platform/arduino/net",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/platform/arduino/loader",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/cpu/avr/.",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/cpu/avr/dev",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/dev",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/lib",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/net",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/net/mac",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/net/rime",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-a⁄rduino/core/net/rpl",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/sys",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/cfs",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/ctk",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/lib/ctk",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/loader",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/core/.",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/platform/arduino/",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/platform/arduino/arduino/",
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/platform/arduino/arduino/variants/standard",
-
-			// "-I${folder:${project_path:contiki.sublime-project}}/contiki-arduino/apps/servreg-hack/",
-
-			// "-DCONTIKI=1",
-			// "-DCONTIKI_TARGET_ARDUINO=1",
-			"-mmcu=atmega328p",
-			"-ffunction-sections",
-			"-fdata-sections",
-
-
-			// "-fno-strict-aliasing",
-			"-DF_CPU=16000000L",
-			"-DARDUINO=100",
-			// "-DMCU_MHZ=16",
-			// "-DAUTO_CRC_PADDING=2",
-			// "-DUSART_BAUD=USART_BAUD_9600",
-			// "-DUSART_PORT=RS232_PORT_0",
-			// "-DAUTOSTART_ENABLE",
-
 			"-D__AVR_ATmega328P__",
 
 			"-Wno-attributes",
-			"-Wno-builtin-requires-header"
-
-			// "UIP_CONF_IPV6=1",
-
-			// "-Wall"
-
-
-			//"-ccc-host-triple", "i386"
+			"-Wno-builtin-requires-header",
+			"-Wno-unused-command-line-argument"
 		]
 	}
 }

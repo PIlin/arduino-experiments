@@ -1,7 +1,16 @@
 
-//#include "XBee/XBee.h"
+#include <SoftwareSerial.h>
 
 #define LED_PIN 13
+
+SoftwareSerial sserial(10, 11);
+
+
+#include "XBeeAT.hpp"
+
+
+XBee::XBee xbee(&sserial);
+
 
 void blink(int t1, int t2)
 {
@@ -17,88 +26,55 @@ void nblink(int c, int t1, int t2)
 }
 
 
-
 void setup()
 {
     pinMode(LED_PIN, OUTPUT);
 
-    Serial.begin(9600);
+    Serial.begin(57600);
 
-    nblink(3, 100, 100);
+    sserial.begin(9600);
+
+    // nblink(3, 100, 100);
 }
 
+void echo()
+{
+	if (xbee.available())
+	{
+		Serial.print((char)xbee.read());
+	}
+
+
+	if (Serial.available())
+	{
+		char c = Serial.read();
+		xbee.send_data(c);
+		// Serial.print(c);
+	}
+}
+
+#define PERIOD 10000
 
 void loop()
 {
-	static char buf[32];
+	static unsigned long last = millis();
 
-	static int state = 0;
-	static int i = 0;
-
-	switch (state)
+	if (true && (millis() - last > PERIOD))
 	{
-	case 0:
-	{
-		nblink(2, 50, 100);
-		delay(1000);
-		//Serial.print("+++");
-		for (int i = 0; i < 3; ++i)
-		{
-			Serial.print('+');
-			delay(200);
-		}
+		XBee::Command c("ID");
+		xbee.send_command(c);
+		char buf[30];
+		uint8_t len = xbee.read_response(buf, 30);
+		buf[len] = 0;
 
-		state = 1;
-		i = 0;
-	}
-	break;
+		Serial.println();
+		Serial.print("ATID = ");
+		Serial.println(buf);
 
-	case 1:
-	{
-		while (Serial.available() > 0)
-		{
-			buf[i++] = Serial.read();
-
-			if (i == 2)
-			{
-				if (buf[0] == 'O' && buf[1] == 'K' && buf[2] == '\r')
-				{
-					state = 2;
-					break;
-				}
-			}
-		}
-
-	}
-	break;
-
-	case 2:
-	{
-		blink(300, 100);
+		xbee.stop_command_mode();
+		last = millis();
 	}
 
-	}
-
-
+	echo();
 }
 
-
-
-
-/****/
-/*
-XBee xbee = XBee();
-
-void setup()
-{
-	pinMode(LED_PIN, OUTPUT);
-
-	xbee.begin(9600);
-	nblink(3, 100, 100);
-}
-
-void loop()
-{
-
-}
-*/

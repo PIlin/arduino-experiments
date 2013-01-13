@@ -57,7 +57,8 @@ public:
 		serial(serial),
 		last_com_time(ULONG_MAX),
 		last_send_time(ULONG_MAX),
-		com_mode_timeout(0x64 * 100), // default value
+		//com_mode_exit_timeout(0x64 * 100), // default value
+		com_mode_enter_timeout(1000),      // default value
 		com_mode(false)
 	{
 
@@ -88,6 +89,8 @@ public:
 			serial->write(*p);
 			++p;
 		}
+
+		last_send_time = millis();
 	}
 
 	void send_data(uint8_t const c)
@@ -95,6 +98,8 @@ public:
 		check_command_mode(false);
 
 		serial->write(c);
+
+		last_send_time = millis();
 	}
 
 	int read()
@@ -183,11 +188,17 @@ private:
 
 	uint8_t enter_com_mode(void)
 	{
-		DEBUG_PRINTLN("enter_com_mode");
-		delay(1000);
+		unsigned long wait = millis() - last_send_time;
+
+		DEBUG_PRINT("enter_com_mode ");
+		DEBUG_PRINTLN(wait);
+
+		if (wait < com_mode_enter_timeout)
+			delay(com_mode_enter_timeout - wait);
+
 		serial->print("+++");
 
-		if (!read_ok(1200))
+		if (!read_ok(com_mode_enter_timeout + 5))
 			return false;
 
 		com_mode = true;
@@ -201,7 +212,7 @@ private:
 		serial->print("ATCN");
 		serial->write(CR);
 
-		read_ok(com_mode_timeout);
+		read_ok(com_mode_exit_timeout);
 
 		com_mode = false;
 		DEBUG_PRINTLN("com_mode = false");
@@ -211,14 +222,18 @@ private:
 	{
 		const unsigned long now = millis();
 
-		com_mode = com_mode && (now - last_com_time < com_mode_timeout);
+		com_mode = com_mode && (now - last_com_time < com_mode_exit_timeout);
 		DEBUG_PRINT("check_command_mode ");
 		DEBUG_PRINT(com_mode);
 		DEBUG_PRINTLN(now - last_com_time);
 
 		if (enter && !com_mode)
 		{
-			enter_com_mode();
+			while (!enter_com_mode())
+			{
+				// in case when last send considered as not the command
+				last_send_time = millis();
+			}
 		}
 		else if (!enter && com_mode)
 		{
@@ -226,10 +241,17 @@ private:
 		}
 	}
 
+private:
+
+	void set_com_mode_exit_timeout(unsigned long val) { com_mode_exit_timeout = val*100; }
+
+private:
+
 	Stream* serial;
 	unsigned long last_com_time;
 	unsigned long last_send_time;
-	unsigned long com_mode_timeout;
+	unsigned long com_mode_exit_timeout;
+	unsigned long com_mode_enter_timeout;
 	bool com_mode;
 };
 

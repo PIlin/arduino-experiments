@@ -50,6 +50,27 @@ private:
 	friend class XBee;
 };
 
+unsigned long parse_hex(char const* const buf, uint8_t const len)
+{
+	unsigned long res = 0;
+
+	for (uint8_t i = 0; i < len; ++i)
+	{
+		char c = buf[i];
+
+		if (c > 'F') c -= 'a' - 'A';
+		if (c < '0' || c > 'F') return 0;
+		if ('9' < c && c < 'A') return 0;
+
+		c = (c >= 'A') ? (c - 'A' + 10) : (c - '0');
+
+		res = (res * 16) + c;
+	}
+
+	return res;
+}
+
+
 class XBee
 {
 public:

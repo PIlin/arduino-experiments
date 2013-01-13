@@ -82,6 +82,7 @@ public:
 		com_mode_enter_timeout(1000),      // default value
 		com_mode(false)
 	{
+		set_com_mode_exit_timeout(0x64); // default value
 
 	}
 

@@ -90,6 +90,9 @@ public:
 	{
 		check_command_mode(true);
 
+		while (serial->available())
+			serial->read();
+
 		serial->print("AT");
 		serial->print(command.command);
 		for (uint8_t i = 0; i < command.param_length; ++i)
@@ -134,7 +137,7 @@ public:
 		return serial->available();
 	}
 
-	uint8_t read_response(char* const buf, uint8_t const size)
+	uint8_t read_response(void* const buf, uint8_t const size)
 	{
 		uint8_t i = 0;
 		for (; i < size;)
@@ -145,12 +148,19 @@ public:
 				if (c == CR)
 					break;
 
-				buf[i] = c;
+				reinterpret_cast<uint8_t* const>(buf)[i] = c;
 				++i;
 			}
 		}
 
 		return i;
+	}
+
+	uint8_t read_response_str(char* const buf, uint8_t const size)
+	{
+		uint8_t len = read_response(buf, size - 1);
+		buf[len] = 0;
+		return len;
 	}
 
 	bool read_ok(unsigned long const timeout)
@@ -201,10 +211,17 @@ public:
 		}
 	}
 
+	bool read_ok_error(unsigned long timeout)
+	{
+		return read_ok(timeout);
+	}
+
 	void stop_command_mode()
 	{
 		check_command_mode(false);
 	}
+
+
 
 private:
 
@@ -261,6 +278,28 @@ private:
 		{
 			exit_com_mode();
 		}
+	}
+
+public:
+
+	void check_command_mode_exit_timeout(bool stop_com_mode = true)
+	{
+		Command c("CT");
+		send_command(c);
+		const uint8_t buflen = 6;
+		char buf[buflen];
+		uint8_t len = read_response_str(buf, buflen);
+
+		unsigned long res = parse_hex(buf, len);
+		DEBUG_PRINT("ATCT = ");
+		DEBUG_PRINT(buf);
+		DEBUG_PRINT(" - ");
+		DEBUG_PRINTLN(res);
+
+		set_com_mode_exit_timeout(res);
+
+		if (stop_com_mode)
+			stop_command_mode();
 	}
 
 private:

@@ -12,14 +12,7 @@
 
 
 #define DEBUG 1
-
-#if DEBUG
-# define DEBUG_PRINT(x)   do { Serial.print(x);   } while (0)
-# define DEBUG_PRINTLN(x) do { Serial.println(x); } while (0)
-#else
-# define DEBUG_PRINT(x)
-# define DEBUG_PRINTLN(x)
-#endif
+#include "debug.h"
 
 namespace XBee
 {

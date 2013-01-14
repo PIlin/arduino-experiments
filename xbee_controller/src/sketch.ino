@@ -58,14 +58,25 @@ void echo()
 void loop()
 {
 	static unsigned long last = millis();
+	static unsigned long last_send = millis();
+	static unsigned long next_send = 11000;
+	if (false && (millis() - last_send > next_send))
+	{
+		xbee.send_data("ZZZZ", 4);
+
+		next_send = random(8000, 150000);
+		Serial.print("next_send ");
+		Serial.println(next_send);
+	}
 
 	if (true && (millis() - last > PERIOD))
 	{
+		xbee.check_command_mode_exit_timeout(false);
+
 		XBee::Command c("ID");
 		xbee.send_command(c);
 		char buf[30];
-		uint8_t len = xbee.read_response(buf, 30);
-		buf[len] = 0;
+		uint8_t len = xbee.read_response_str(buf, 30);
 
 		Serial.println();
 		Serial.print("ATID = ");

@@ -5,7 +5,7 @@ SoftwareSerial sserial(10, 11);
 
 void setup()
 {
-	Serial.begin(9600);
+	Serial.begin(57600);
 
 	sserial.begin(9600);
 }

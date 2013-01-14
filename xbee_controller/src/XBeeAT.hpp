@@ -4,6 +4,8 @@
 
 #include <Arduino.h>
 
+#include "fsm.h"
+
 // class Stream;
 
 #define TYPED_VAR(type, val) ((type)val)
@@ -76,7 +78,6 @@ public:
 		com_mode(false)
 	{
 		set_com_mode_exit_timeout(0x64); // default value
-
 	}
 
 	void send_command(Command const& command)
@@ -156,8 +157,48 @@ public:
 		return len;
 	}
 
-	bool read_ok(unsigned long const timeout)
+	uint8_t read_ok(unsigned long const timeout)
 	{
+
+		#define CC 3
+		#define SC 3
+		#define AC 1
+		#define e (-1)
+
+		static const char classes[CC] = {'O', 'K', CR};
+		static const uint8_t table[SC][CC] = {
+				{1, e, e},
+				{1, 2, e},
+				{1, e, SC},
+			};
+		static const fsm_action actions[AC] = {
+				{2, SC, 0}
+			};
+		static const fsm_generator gen = {
+			fsm_gen_avail, serial,
+			fsm_gen_read, serial
+		};
+		static const fsm ok = {
+			CC,
+			SC,
+			classes,
+			table[0],
+			AC,
+			actions,
+			&gen
+		};
+
+		#undef CC
+		#undef SC
+		#undef AC
+		#undef e
+
+		uint8_t res = fsm_parse(&ok, timeout, false);
+		DEBUG_PRINT("read_ok res = ");
+		DEBUG_PRINTLN(res);
+		return res;
+
+/*
 		unsigned long begin = millis();
 		int state = 0;
 		while (1)
@@ -202,11 +243,61 @@ public:
 				return false;
 			}
 		}
+		*/
 	}
 
-	bool read_ok_error(unsigned long timeout)
+	// 0 ok
+	// 1 error
+	// <0 parse errors
+	int8_t read_ok_error(unsigned long timeout)
 	{
-		return read_ok(timeout);
+		#define CC 5
+		#define SC 8
+		#define AC 2
+		#define e (-1)
+
+		enum {
+			EOK,
+			EERROR
+		};
+
+		static const char classes[CC] = {'O', 'K', 'E', 'R', CR};
+		static const uint8_t table[SC][CC] = {
+				{1, e, 3, e, e},
+				{1, 2, 3, e, e},
+				{1, e, 3, e, SC},
+				{1, e, 3, 4, e},
+				{1, e, 3, 5, e},
+				{6, e, 3, e, e},
+				{1, 2, 3, 7, e},
+				{1, e, 3, e, SC},
+			};
+		static const fsm_action actions[AC] = {
+				{2, SC, 0},
+				{7, SC, EERROR}
+			};
+
+		static const fsm_generator gen = {
+			fsm_gen_avail, serial,
+			fsm_gen_read, serial
+		};
+
+		static const fsm ok_error = {
+			CC,
+			SC,
+			classes,
+			table[0],
+			AC,
+			actions,
+			&gen
+		};
+
+		#undef CC
+		#undef SC
+		#undef AC
+		#undef e
+
+		return fsm_parse(&ok_error, timeout, false);
 	}
 
 	void stop_command_mode()
@@ -218,19 +309,26 @@ public:
 
 private:
 
-	uint8_t enter_com_mode(void)
+	uint8_t enter_com_mode(bool fast)
 	{
 		unsigned long wait = millis() - last_send_time;
 
 		DEBUG_PRINT("enter_com_mode ");
 		DEBUG_PRINTLN(wait);
 
-		if (wait < com_mode_enter_timeout)
-			delay(com_mode_enter_timeout - wait);
+		if (fast)
+		{
+			if (wait < com_mode_enter_timeout)
+				delay(com_mode_enter_timeout - wait);
+		}
+		else
+		{
+			delay(com_mode_enter_timeout);
+		}
 
 		serial->print("+++");
 
-		if (!read_ok(com_mode_enter_timeout + 5))
+		if (0 != read_ok(com_mode_enter_timeout + 5))
 			return false;
 
 		com_mode = true;
@@ -261,10 +359,11 @@ private:
 
 		if (enter && !com_mode)
 		{
-			while (!enter_com_mode())
+			bool fast = true;
+			while (!enter_com_mode(fast))
 			{
 				// in case when last send considered as not the command
-				last_send_time = millis();
+				fast = false;
 			}
 		}
 		else if (!enter && com_mode)
@@ -307,6 +406,18 @@ private:
 	unsigned long com_mode_exit_timeout;
 	unsigned long com_mode_enter_timeout;
 	bool com_mode;
+
+private:
+
+	static int fsm_gen_avail(void* param)
+	{
+		return static_cast<Stream*>(param)->available();
+	}
+
+	static int fsm_gen_read(void* param)
+	{
+		return static_cast<Stream*>(param)->read();
+	}
 };
 
 }

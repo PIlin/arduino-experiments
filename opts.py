@@ -2,6 +2,7 @@ import pickle
 # from pprint import pprint
 import os
 import sys
+import re
 
 def find_dffile(path):
 	dbfile = path + r'/.build/environment.pickle'
@@ -24,6 +25,8 @@ def load_db(filename):
 
 		pass
 
+	# pprint(db)
+
 	return db
 
 
@@ -38,6 +41,15 @@ def parse_db(db):
 
 	opts.append("-I" + avr + r'/avr-4/include/')
 	opts.append("-I" + avr + r'/lib/gcc/avr/4.3.2/include')
+
+
+	recpu = re.compile(r"-mmcu=atmega(.+)")
+	for o in opts:
+		m = recpu.match(o)
+		if m:
+			mm = m.group(1)
+			opts.append("-D__AVR_ATmega{0}__".format(mm.upper()))
+
 
 	return opts
 

@@ -32,6 +32,7 @@ bid: bd id
 
 #
 
+size:
+	/Applications/Arduino.app/Contents/Resources/Java/hardware/tools/avr/bin/avr-size .build/uno/firmware.elf
 
-
-.PHONY: all bu iu biu bd id bid clean
+.PHONY: all bu iu biu bd id bid clean size

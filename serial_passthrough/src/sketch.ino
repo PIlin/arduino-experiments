@@ -1,11 +1,12 @@
 
 #include <SoftwareSerial.h>
 
-SoftwareSerial sserial(10, 11);
+//SoftwareSerial sserial(10, 11);
+#define sserial Serial1
 
 void setup()
 {
-	Serial.begin(57600);
+	Serial.begin(9600);
 
 	sserial.begin(9600);
 }

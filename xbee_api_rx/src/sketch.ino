@@ -17,16 +17,13 @@
  * along with XBee-Arduino.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+
 #include "XBee/XBee.h"
 
 #define DEBUG 1
 #include "debug.h"
 
-/*
-This example is for Series 2 XBee
-Receives a ZB RX packet and sets a PWM value based on packet data.
-Error led is flashed if an unexpected packet is received
-*/
 
 #ifdef __AVR_ATmega32U4__
 # define XBEE_SERIAL Serial1
@@ -36,11 +33,13 @@ SoftwareSerial soft_serial(10, 11);
 # define XBEE_SERIAL soft_serial
 #endif
 
+
+// create the XBee object
 XBee xbee = XBee();
+static AtCommandResponse at_response;
 
 int statusLed = 13;
-int errorLed = 13;
-int dataLed = 13;
+
 
 void flashLed(int pin, int times, int wait) {
 
@@ -54,74 +53,6 @@ void flashLed(int pin, int times, int wait) {
       }
     }
 }
-
-// serial high
-uint8_t shCmd[] = {'S','H'};
-// serial low
-uint8_t slCmd[] = {'S','L'};
-// association status
-uint8_t assocCmd[] = {'A','I'};
-
-AtCommandRequest atRequest = AtCommandRequest(shCmd);
-
-AtCommandResponse atResponse = AtCommandResponse();
-
-
-void sendAtCommand() {
-  Serial.println("Sending command to the XBee");
-
-  // send the command
-  xbee.send(atRequest);
-
-  // wait up to 5 seconds for the status response
-  if (xbee.readPacket(5000)) {
-    // got a response!
-
-    // should be an AT command response
-    if (xbee.getResponse().getApiId() == AT_COMMAND_RESPONSE) {
-      xbee.getResponse().getAtCommandResponse(atResponse);
-
-      if (atResponse.isOk()) {
-        Serial.print("Command [");
-        Serial.print(atResponse.getCommand()[0]);
-        Serial.print(atResponse.getCommand()[1]);
-        Serial.println("] was successful!");
-
-        if (atResponse.getValueLength() > 0) {
-          Serial.print("Command value length is ");
-          Serial.println(atResponse.getValueLength(), DEC);
-
-          Serial.print("Command value: ");
-
-          for (int i = 0; i < atResponse.getValueLength(); i++) {
-            Serial.print(atResponse.getValue()[i], HEX);
-            Serial.print(" ");
-          }
-
-          Serial.println("");
-        }
-      }
-      else {
-        Serial.print("Command return error code: ");
-        Serial.println(atResponse.getStatus(), HEX);
-      }
-    } else {
-      Serial.print("Expected AT response but got ");
-      Serial.print(xbee.getResponse().getApiId(), HEX);
-    }
-  } else {
-    // at command failed
-    if (xbee.getResponse().isError()) {
-      Serial.print("Error reading packet.  Error code: ");
-      Serial.println(xbee.getResponse().getErrorCode());
-    }
-    else {
-      Serial.print("No response from radio");
-    }
-  }
-}
-
-
 
 
 
@@ -138,10 +69,8 @@ void proc_xb_pack(int timeout = 0)
   else
     xbee.readPacket();
 
-  if (xbee.getResponse().isAvailable()) {
-    // got something
-
-
+  if (xbee.getResponse().isAvailable())
+  {
     switch (xbee.getResponse().getApiId())
     {
       case ZB_RX_RESPONSE:
@@ -195,8 +124,9 @@ void proc_xb_pack(int timeout = 0)
         xbee.getResponse().getAtCommandResponse(resp);
 
         DEBUG_PRINT("command ");
-        for (int i = 0; i < 2; ++i) DEBUG_PRINT((char)resp.getCommand()[i]);
-        DEBUG_PRINTLN("");
+        for (int i = 0; i < 2; ++i)
+          DEBUG_PRINT((char)resp.getCommand()[i]);
+        DEBUG_PRINTLN();
 
         DEBUG_PRINTLN2H("status ", resp.getStatus());
 
@@ -206,7 +136,7 @@ void proc_xb_pack(int timeout = 0)
           Serial.print(resp.getValue()[i], HEX);
           Serial.print(' ');
         }
-        DEBUG_PRINTLN("");
+        DEBUG_PRINTLN();
         break;
       }
       default:
@@ -264,7 +194,7 @@ void initial_xb_check()
   // at_command("NJ");
   // at_command("PL");
   // at_command("PM");
-  // at_command("AP");
+  at_command("AP");
   // at_command("AO");
   // at_command("BD");
   // at_command("NB");
@@ -276,10 +206,10 @@ void initial_xb_check()
 
 void initial_xb_setup()
 {
-  {
-    uint8_t p[] = {0x0d};
-    at_command("CH", p, sizeof(p));
-  }
+  // {
+  //   uint8_t p[] = {0x0d};
+  //   at_command("CH", p, sizeof(p));
+  // }
 
   {
     uint8_t p[] = {0x28, 0x42};
@@ -290,38 +220,36 @@ void initial_xb_setup()
 
 void setup() {
   pinMode(statusLed, OUTPUT);
-  pinMode(errorLed, OUTPUT);
-  pinMode(dataLed,  OUTPUT);
-
 
   XBEE_SERIAL.begin(9600);
   xbee.begin(XBEE_SERIAL);
 
 
+  Serial.begin(9600);
+
   while (!Serial);
 
-  Serial.println("Hello from reader");
+  Serial.println("Hi, Reader");
+
 
   initial_xb_setup();
 
   initial_xb_check();
-
-  //flashLed(statusLed, 3, 50);
 }
 
-// continuously reads packets, looking for ZB Receive or Modem Status
 void loop() {
 
   static unsigned long last_ai = 0;
 
   unsigned long now = millis();
 
-  if (now - last_ai >= 10000)
+  if (now - last_ai >= 5000)
   {
     last_ai = now;
+    DEBUG_PRINTLN("send AI");
     at_command("AI", NULL, 0, 0);
   }
 
+  // send_packet();
   proc_xb_pack();
-
 }

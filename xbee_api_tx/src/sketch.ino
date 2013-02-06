@@ -17,15 +17,13 @@
  * along with XBee-Arduino.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+
 #include "XBee/XBee.h"
 
 #define DEBUG 1
 #include "debug.h"
 
-/*
-This example is for Series 2 XBee
- Sends a ZB TX request with the value of analogRead(pin5) and checks the status response for success
-*/
 
 #ifdef __AVR_ATmega32U4__
 # define XBEE_SERIAL Serial1
@@ -43,16 +41,7 @@ XBee xbee = XBee();
 static AtCommandResponse at_response;
 
 uint8_t payload[1];
-
-// SH + SL Address of receiving XBee
-// XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x405D79E9);
-
-// XBeeAddress64 addr64 = XBeeAddress64(0x00, 0xffff);
-
-int pin5 = 0;
-
 int statusLed = 13;
-int errorLed = 13;
 
 static bool was_tx_result = true;
 static bool connected = false;
@@ -84,9 +73,8 @@ void proc_xb_pack(int timeout = 0)
   else
     xbee.readPacket();
 
-  if (xbee.getResponse().isAvailable()) {
-    // got something
-
+  if (xbee.getResponse().isAvailable())
+  {
 
     switch (xbee.getResponse().getApiId())
     {
@@ -148,13 +136,12 @@ void proc_xb_pack(int timeout = 0)
       {
         DEBUG_PRINTLN("AT_COMMAND_RESPONSE");
 
-
-
         xbee.getResponse().getAtCommandResponse(at_response);
 
         DEBUG_PRINT("command ");
-        for (int i = 0; i < 2; ++i) DEBUG_PRINT((char)at_response.getCommand()[i]);
-        DEBUG_PRINTLN("");
+        for (int i = 0; i < 2; ++i)
+          DEBUG_PRINT((char)at_response.getCommand()[i]);
+        DEBUG_PRINTLN();
 
         DEBUG_PRINTLN2H("status ", at_response.getStatus());
 
@@ -164,13 +151,13 @@ void proc_xb_pack(int timeout = 0)
           Serial.print(at_response.getValue()[i], HEX);
           Serial.print(' ');
         }
-        DEBUG_PRINTLN("");
+        DEBUG_PRINTLN();
 
         break;
       }
       default:
       {
-        DEBUG_PRINTLN2("got api packet ", xbee.getResponse().getApiId());
+        DEBUG_PRINTLN2H("got api packet ", xbee.getResponse().getApiId());
         break;
       }
     }
@@ -186,18 +173,34 @@ void send_packet()
 {
   static uint8_t counter = 1;
 
-  if (!was_tx_result || !connected)
+
+  if (!connected)
     return;
+
+
+  if (!was_tx_result)
+  {
+
+    unsigned long now = millis();
+    static unsigned long last_send = now;
+
+    if (now - last_send <= 5000)
+    {
+      return;
+    }
+
+    last_send = now;
+    DEBUG_PRINTLN("transmit status timeout");
+  }
 
   was_tx_result = false;
 
   DEBUG_PRINTLN2("send_packet ", counter);
   payload[0] = counter++;
 
-
-
   // static XBeeAddress64 addr64 = XBeeAddress64(0x00a21300, 0xE9795D40);
-  static XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x40608a5b);
+  // static XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x40608a5b);
+  static XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x405d79e9);
   static ZBTxRequest txrq = ZBTxRequest();
 
   txrq.setPayload(payload);
@@ -249,7 +252,7 @@ void initial_xb_check()
   // at_command("NJ");
   // at_command("PL");
   // at_command("PM");
-  // at_command("AP");
+  at_command("AP");
   // at_command("AO");
   // at_command("BD");
   // at_command("NB");
@@ -281,7 +284,6 @@ void initial_xb_setup()
 
 void setup() {
   pinMode(statusLed, OUTPUT);
-  pinMode(errorLed, OUTPUT);
 
   XBEE_SERIAL.begin(9600);
   xbee.begin(XBEE_SERIAL);
@@ -291,14 +293,12 @@ void setup() {
 
   while (!Serial);
 
-  Serial.println("Hello from writer@@@@@@@@@@@@@");
+  Serial.println("Hi, Writers");
 
 
   initial_xb_setup();
 
   initial_xb_check();
-
-  //delay(10000);
 }
 
 
@@ -317,7 +317,4 @@ void loop() {
 
   send_packet();
   proc_xb_pack();
-
-
-
 }

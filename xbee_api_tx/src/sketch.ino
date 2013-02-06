@@ -18,29 +18,44 @@
  */
 
 #include "XBee/XBee.h"
+
+#define DEBUG 1
+#include "debug.h"
+
 /*
 This example is for Series 2 XBee
  Sends a ZB TX request with the value of analogRead(pin5) and checks the status response for success
 */
 
+#ifdef __AVR_ATmega32U4__
+# define XBEE_SERIAL Serial1
+#else
+# include <SoftwareSerial.h>
+SoftwareSerial soft_serial(10, 11);
+# define XBEE_SERIAL soft_serial
+#endif
+
+
 // create the XBee object
 XBee xbee = XBee();
 
-//uint8_t payload[] = { 0, 0 };
+
+static AtCommandResponse at_response;
 
 uint8_t payload[1];
 
 // SH + SL Address of receiving XBee
 // XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x405D79E9);
-XBeeAddress64 addr64 = XBeeAddress64(0x00a21300, 0xE9795D40);
+
 // XBeeAddress64 addr64 = XBeeAddress64(0x00, 0xffff);
-ZBTxRequest zbTx = ZBTxRequest(addr64, payload, sizeof(payload));
-ZBTxStatusResponse txStatus = ZBTxStatusResponse();
 
 int pin5 = 0;
 
 int statusLed = 13;
 int errorLed = 13;
+
+static bool was_tx_result = true;
+static bool connected = false;
 
 void flashLed(int pin, int times, int wait) {
 
@@ -55,71 +70,254 @@ void flashLed(int pin, int times, int wait) {
   }
 }
 
+
+
+void proc_xb_pack(int timeout = 0)
+{
+  if (timeout)
+  {
+    if (!xbee.readPacket(timeout))
+    {
+      return;
+    }
+  }
+  else
+    xbee.readPacket();
+
+  if (xbee.getResponse().isAvailable()) {
+    // got something
+
+
+    switch (xbee.getResponse().getApiId())
+    {
+      case ZB_RX_RESPONSE:
+      {
+        DEBUG_PRINTLN("ZB_RX_RESPONSE");
+
+        static ZBRxResponse rx;
+        xbee.getResponse().getZBRxResponse(rx);
+
+        DEBUG_PRINTLN2H("ra64 msb ", rx.getRemoteAddress64().getMsb());
+        DEBUG_PRINTLN2H("ra64 lsb ", rx.getRemoteAddress64().getLsb());
+        DEBUG_PRINTLN2H("remadr16 ", rx.getRemoteAddress16());
+        DEBUG_PRINTLN2H("option   ", rx.getOption());
+        DEBUG_PRINTLN2H("data len ", rx.getDataLength());
+
+        break;
+      }
+      case MODEM_STATUS_RESPONSE:
+      {
+        DEBUG_PRINTLN("MODEM_STATUS_RESPONSE");
+        static ModemStatusResponse msr;
+        xbee.getResponse().getModemStatusResponse(msr);
+
+        DEBUG_PRINTLN2H("status ", msr.getStatus());
+
+        switch (msr.getStatus())
+        {
+          case 2:
+            DEBUG_PRINTLN("connected");
+            connected = true;
+            break;
+          case 3:
+            connected = false;
+            was_tx_result = true;
+            break;
+        }
+
+        break;
+      }
+      case ZB_TX_STATUS_RESPONSE:
+      {
+        DEBUG_PRINTLN("ZB_TX_STATUS_RESPONSE");
+
+        static ZBTxStatusResponse txsr;
+        xbee.getResponse().getZBTxStatusResponse(txsr);
+
+        DEBUG_PRINTLN2 ("success ", txsr.isSuccess());
+        DEBUG_PRINTLN2H("rem adr ", txsr.getRemoteAddress());
+        DEBUG_PRINTLN2H("del st  ", txsr.getDeliveryStatus());
+        DEBUG_PRINTLN2H("disc st ", txsr.getDiscoveryStatus());
+        DEBUG_PRINTLN2H("ret cnt ", txsr.getTxRetryCount());
+
+        was_tx_result = true;
+
+        break;
+      }
+      case AT_COMMAND_RESPONSE:
+      {
+        DEBUG_PRINTLN("AT_COMMAND_RESPONSE");
+
+
+
+        xbee.getResponse().getAtCommandResponse(at_response);
+
+        DEBUG_PRINT("command ");
+        for (int i = 0; i < 2; ++i) DEBUG_PRINT((char)at_response.getCommand()[i]);
+        DEBUG_PRINTLN("");
+
+        DEBUG_PRINTLN2H("status ", at_response.getStatus());
+
+        DEBUG_PRINT("value: ");
+        for (int i = 0; i < at_response.getValueLength(); ++i)
+        {
+          Serial.print(at_response.getValue()[i], HEX);
+          Serial.print(' ');
+        }
+        DEBUG_PRINTLN("");
+
+        break;
+      }
+      default:
+      {
+        DEBUG_PRINTLN2("got api packet ", xbee.getResponse().getApiId());
+        break;
+      }
+    }
+  }
+  else if (xbee.getResponse().isError())
+  {
+    DEBUG_PRINTLN2("Error reading packet.  Error code: ", xbee.getResponse().getErrorCode());
+  }
+
+}
+
+void send_packet()
+{
+  static uint8_t counter = 1;
+
+  if (!was_tx_result || !connected)
+    return;
+
+  was_tx_result = false;
+
+  DEBUG_PRINTLN2("send_packet ", counter);
+  payload[0] = counter++;
+
+
+
+  // static XBeeAddress64 addr64 = XBeeAddress64(0x00a21300, 0xE9795D40);
+  static XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x40608a5b);
+  static ZBTxRequest txrq = ZBTxRequest();
+
+  txrq.setPayload(payload);
+  txrq.setPayloadLength(1);
+  txrq.setAddress64(addr64);
+  txrq.setAddress16(0xFFFE);
+
+  xbee.send(txrq);
+}
+
+
+void at_command(char const * c, uint8_t const* val = NULL, int size = 0, int timeout = 5000)
+{
+  uint8_t* p = (uint8_t*)c;
+
+  static AtCommandRequest r;
+  r.setCommand(p);
+  if (val)
+  {
+    r.setCommandValue((uint8_t*)val);
+    r.setCommandValueLength(size);
+  }
+  else
+  {
+    r.clearCommandValue();
+  }
+
+  xbee.send(r);
+  proc_xb_pack(timeout);
+}
+
+void initial_xb_check()
+{
+  at_command("DH");
+  at_command("DL");
+  at_command("MY");
+  at_command("SH");
+  at_command("SL");
+  // at_command("NP");
+  // at_command("DD");
+  at_command("CH");
+  at_command("ID");
+  // at_command("OP");
+  // at_command("OI");
+  // at_command("NO");
+  // at_command("SC");
+  // at_command("SD");
+  // at_command("ZS");
+  // at_command("NJ");
+  // at_command("PL");
+  // at_command("PM");
+  // at_command("AP");
+  // at_command("AO");
+  // at_command("BD");
+  // at_command("NB");
+  // at_command("SB");
+  // at_command("VR");
+  // at_command("HV");
+
+  at_command("AI");
+  if (at_response.getValueLength() > 0 && at_response.getValue()[0] == 0)
+  {
+    DEBUG_PRINTLN("send AI");
+    connected = true;
+  }
+}
+
+void initial_xb_setup()
+{
+  // {
+  //   uint8_t p[] = {0x0d};
+  //   at_command("CH", p, sizeof(p));
+  // }
+
+  {
+    uint8_t p[] = {0x28, 0x42};
+    at_command("ID", p, sizeof(p));
+  }
+
+}
+
 void setup() {
   pinMode(statusLed, OUTPUT);
   pinMode(errorLed, OUTPUT);
 
-  // start serial
-  Serial1.begin(9600);
-  xbee.begin(Serial1);
+  XBEE_SERIAL.begin(9600);
+  xbee.begin(XBEE_SERIAL);
+
 
   Serial.begin(9600);
 
   while (!Serial);
 
-  flashLed(statusLed, 3, 50);
+  Serial.println("Hello from writer@@@@@@@@@@@@@");
+
+
+  initial_xb_setup();
+
+  initial_xb_check();
+
+  //delay(10000);
 }
 
+
 void loop() {
-  // break down 10-bit reading into two bytes and place in payload
-  // pin5 = analogRead(5);
 
-	static uint8_t counter = 1;
+  static unsigned long last_ai = 0;
 
-  payload[0] = counter++;
+  unsigned long now = millis();
 
-  xbee.send(zbTx);
-
-  Serial.print("sent ");
-  Serial.println(payload[0]);
-
-
-  // flash TX indicator
-  flashLed(statusLed, 1, 100);
-
-  // after sending a tx request, we expect a status response
-  // wait up to half second for the status response
-  if (xbee.readPacket(500)) {
-    // got a response!
-
-    // should be a znet tx status
-    if (xbee.getResponse().getApiId() == ZB_TX_STATUS_RESPONSE) {
-      xbee.getResponse().getZBTxStatusResponse(txStatus);
-
-      Serial.println("ZB_TX_STATUS_RESPONSE");
-
-      // get the delivery status, the fifth byte
-      if (txStatus.getDeliveryStatus() == SUCCESS) {
-        // success.  time to celebrate
-        flashLed(statusLed, 5, 50);
-
-        Serial.println("SUCCESS");
-      } else {
-        // the remote XBee did not receive our packet. is it powered on?
-        flashLed(errorLed, 3, 500);
-
-        Serial.println("SUCCESS not");
-      }
-    }
-  } else if (xbee.getResponse().isError()) {
-    Serial.print("Error reading packet.  Error code: ");
-    Serial.println(xbee.getResponse().getErrorCode());
-  } else {
-    // local XBee did not provide a timely TX Status Response -- should not happen
-    flashLed(errorLed, 2, 50);
-
-    Serial.println("should not happen");
+  if (now - last_ai >= 5000)
+  {
+    last_ai = now;
+    DEBUG_PRINTLN("send AI");
+    at_command("AI", NULL, 0, 0);
   }
 
-  delay(1000);
+  send_packet();
+  proc_xb_pack();
+
+
+
 }

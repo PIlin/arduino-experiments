@@ -1,0 +1,3 @@
+[submodule "mrflib"]
+	path = mrflib
+	url = git://github.com/karlp/Mrf24j40-arduino-library.git

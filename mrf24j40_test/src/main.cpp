@@ -9,9 +9,13 @@
 #define str(x) #x
 
 #define DEBUG_PRINT(x)   do { Serial.print(x);   } while (0)
+#define DEBUG_PRINTH(x)   do { Serial.print(x, HEX);   } while (0)
 #define DEBUG_PRINTLN(x) do { Serial.println(x); } while (0)
+#define DEBUG_PRINTLNH(x) do { Serial.println(x, HEX); } while (0)
+#define DEBUG_PRINT2(x,y) do { DEBUG_PRINT(x); DEBUG_PRINT(y); } while (0)
+#define DEBUG_PRINT2H(x,y) do { DEBUG_PRINT(x); DEBUG_PRINTH(y); } while (0)
 #define DEBUG_PRINTLN2(x,y) do { DEBUG_PRINT(x); DEBUG_PRINTLN(y); } while (0)
-#define DEBUG_PRINTLN2H(x,y) do { DEBUG_PRINT(x); Serial.println(y, HEX); } while (0)
+#define DEBUG_PRINTLN2H(x,y) do { DEBUG_PRINT(x); DEBUG_PRINTLNH(y); } while (0)
 
 #define DEBUG_SHORT(x) do { DEBUG_PRINTLN2H(#x " ", mrf.read_short(x)); } while (0)
 #define DEBUG_LONG(x) do { DEBUG_PRINTLN2H(#x " ", mrf.read_long(x)); } while (0)
@@ -40,7 +44,8 @@ static void handle_rx(void)
 
 	Serial.print("received a packet ");
 	Serial.print(mrf.get_rxinfo()->frame_length, DEC);
-	Serial.println(" bytes long");
+	Serial.print(" bytes long from 0x");
+	Serial.println(mrf.get_rxinfo()->src_addr16, HEX);
 
 	if(mrf.get_bufferPHY()){
 		Serial.println("Packet data (PHY Payload):");
@@ -84,7 +89,7 @@ static void setup_mrf(void)
 	mrf.reset();
 	mrf.init();
 
-	mrf.set_pan(0x2842abba);
+	mrf.set_pan(0xabba);
 	mrf.address16_write(addresses[ARDUINO_NODE_ID]);
 
 	//mrf.set_promiscuous(true);

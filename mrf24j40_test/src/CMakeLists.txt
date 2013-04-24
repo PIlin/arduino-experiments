@@ -48,12 +48,20 @@ function (BUILD_FOR_BOARD TNAME)
 endfunction()
 
 
+# BUILD_FOR_BOARD(${TARGET_NAME}
+# 	TID 0
+# 	SRCS ${SRCS}
+# 	HDRS ${HDRS}
+# 	BOARD "uno"
+# 	PORT "/dev/tty.usbmodemfd131"
+# )
+
 BUILD_FOR_BOARD(${TARGET_NAME}
 	TID 0
 	SRCS ${SRCS}
 	HDRS ${HDRS}
-	BOARD "uno"
-	PORT "/dev/tty.usbmodemfd131"
+	BOARD "leonardo"
+	PORT "/dev/tty.usbmodemfa1311"
 )
 
 BUILD_FOR_BOARD(${TARGET_NAME}

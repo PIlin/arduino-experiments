@@ -22,10 +22,15 @@
 
 //////////////////////////////////
 
+#ifdef ARDUINO_BOARD_leonardo
 static const int pin_reset = 5;
-// static const int pin_cs = 7;
+static const int pin_cs = 7;
+static const int pin_interrupt = 3;
+#else
+static const int pin_reset = 5;
 static const int pin_cs = 7;
 static const int pin_interrupt = 2;
+#endif
 
 static word addresses[] = {
 	0x6001, 0x2842

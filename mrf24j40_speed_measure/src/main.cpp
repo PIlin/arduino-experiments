@@ -17,21 +17,6 @@
 #define DEBUG_LONG(x) do { DEBUG_PRINTLN2H(#x " ", mrf.read_long(x)); } while (0)
 //////////////////////////////////
 
-static const int ledPin = 13;
-
-static void blink(uint8_t count, const unsigned long t)
-{
-	while (count--)
-	{
-		digitalWrite(ledPin, HIGH);
-		delay(t);
-		digitalWrite(ledPin, LOW);
-		delay(t);
-	}
-}
-
-#define ERROR_BLINK(count) blink(count, 100)
-
 //////////////////////////////////
 
 static const int pin_reset = 5;
@@ -243,7 +228,6 @@ void check_mrf(void)
 }
 
 void setup() {
-	pinMode(ledPin, OUTPUT);
 
 	Serial.begin(57600);
 	while (!Serial);

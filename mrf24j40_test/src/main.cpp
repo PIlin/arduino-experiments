@@ -15,22 +15,6 @@
 
 #define DEBUG_SHORT(x) do { DEBUG_PRINTLN2H(#x " ", mrf.read_short(x)); } while (0)
 #define DEBUG_LONG(x) do { DEBUG_PRINTLN2H(#x " ", mrf.read_long(x)); } while (0)
-//////////////////////////////////
-
-static const int ledPin = 13;
-
-static void blink(uint8_t count, const unsigned long t)
-{
-	while (count--)
-	{
-		digitalWrite(ledPin, HIGH);
-		delay(t);
-		digitalWrite(ledPin, LOW);
-		delay(t);
-	}
-}
-
-#define ERROR_BLINK(count) blink(count, 100)
 
 //////////////////////////////////
 
@@ -142,7 +126,6 @@ void check_mrf(void)
 	DEBUG_PRINTLN("done check_mrf");
 }
 void setup() {
-	pinMode(ledPin, OUTPUT);
 
 	Serial.begin(57600);
 	while (!Serial);

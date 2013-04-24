@@ -149,7 +149,8 @@ static void do_tx()
 		was = now;
 		DEBUG_PRINTLN2("do_tx ", now);
 
-		mrf.send16(addresses[1 - ARDUINO_NODE_ID], "lorem ipsum");
+		//mrf.send16(addresses[1 - ARDUINO_NODE_ID], "lorem ipsum");
+		mrf.send16(0xffff, "lorem ipsum");
 	}
 
 }
